@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Webcam ON/OFF</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styleCamara.css') }}">
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background: #2c2c2c;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.6);
+            text-align: center;
+            width: 700px;
+        }
+
+        h1 {
+            color: #4CAF50;
+            margin-bottom: 20px;
+        }
+
+        video {
+            border-radius: 12px;
+            box-shadow: 0 0 10px rgba(255,255,255,0.2);
+            margin-bottom: 20px;
+        }
+
+        .botones {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 12px 20px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            transition: background 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #mensaje-estado {
+            margin-bottom: 20px;
+            font-size: 16px;
+            color: #ccc;
+        }
+
+        .nav-links a {
+            color: #4CAF50;
+            text-decoration: none;
+            margin: 0 15px;
+            font-weight: bold;
+        }
+
+        .nav-links a:hover {
+            color: #81C784;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Control de Webcam</h1>
+        <video id="video-webcam" width="640" height="480" autoplay playsinline></video>
+
+        <div class="botones">
+            <button id="btn-accion">Encender Cámara</button>
+            <button id="btn-capturar">Capturar Foto</button>
+        </div>
+
+        <p id="mensaje-estado">Cámara apagada</p>
+
+        <div class="nav-links">
+            <a href="{{ url_for('galeria') }}">Ver galería de fotos</a>
+            <a href="{{ url_for('logout') }}">Cerrar sesión</a>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='scriptCamara.js') }}"></script>
+</body>
+</html>

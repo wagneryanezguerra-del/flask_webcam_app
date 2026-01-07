@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Galería de Fotos</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styleCamara.css') }}">
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #2c2c2c;
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.6);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #4CAF50;
+        }
+
+        .galeria {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 20px;
+        }
+
+        .foto-card {
+            background: #333;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+        }
+
+        .foto-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+        }
+
+        .foto-card img {
+            width: 100%;
+            display: block;
+        }
+
+        .foto-card p {
+            margin: 0;
+            padding: 10px;
+            text-align: center;
+            font-size: 14px;
+            color: #bbb;
+            background: #222;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal img {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 12px;
+            box-shadow: 0 0 25px rgba(255,255,255,0.5);
+        }
+
+        #cerrar {
+            position: absolute;
+            top: 20px;
+            right: 40px;
+            font-size: 40px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .nav-links {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .nav-links a {
+            color: #4CAF50;
+            text-decoration: none;
+            margin: 0 15px;
+            font-weight: bold;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: #81C784;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📸 Galería de Fotos</h1>
+        <div class="galeria">
+            {% for img in imagenes %}
+                <div class="foto-card">
+                    <img src="{{ img }}" alt="captura">
+                    <p>{{ img.split('/')[-1] }}</p>
+                </div>
+            {% endfor %}
+        </div>
+        <div class="nav-links">
+            <a href="{{ url_for('home') }}">Volver al control de cámara</a>
+            <a href="{{ url_for('logout') }}">Cerrar sesión</a>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div id="modal" class="modal">
+        <span id="cerrar">&times;</span>
+        <img id="modal-img">
+    </div>
+
+    <script>
+        document.querySelectorAll(".foto-card img").forEach(img => {
+            img.addEventListener("click", () => {
+                document.getElementById("modal-img").src = img.src;
+                document.getElementById("modal").style.display = "flex";
+            });
+        });
+
+        document.getElementById("cerrar").addEventListener("click", () => {
+            document.getElementById("modal").style.display = "none";
+        });
+
+        document.getElementById("modal").addEventListener("click", (e) => {
+            if (e.target.id === "modal") {
+                document.getElementById("modal").style.display = "none";
+            }
+        });
+    </script>
+</body>
+</html>
