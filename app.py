@@ -10,17 +10,27 @@ from PIL import Image
 import io
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'clave-super-segura'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/flask_app'
+
+# --- CONFIGURACIÓN DE SEGURIDAD Y BASE DE DATOS ---
+# Usa la variable de entorno de Render o una clave por defecto en local
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'clave-super-segura')
+
+# Lógica para conectar a PostgreSQL en Render o SQLite en local
+uri = os.environ.get("DATABASE_URL", "sqlite:///bambino.db")
+if uri and uri.startswith("postgres://"):
+    # Corrección obligatoria para SQLAlchemy 1.4+ en Render
+    uri = uri.replace("postgres://", "postgresql://", 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = uri
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Configuración de correo (ejemplo con Gmail SMTP)
+# --- CONFIGURACIÓN DE CORREO (Usa variables de entorno) ---
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'tu_correo@gmail.com'  # reemplaza con tu correo
-app.config['MAIL_PASSWORD'] = 'tu_app_password'      # usa App Password de Gmail
-app.config['MAIL_DEFAULT_SENDER'] = 'tu_correo@gmail.com'
+app.config['MAIL_USERNAME'] = os.environ.get("MAIL_USERNAME", "tu_correo@gmail.com")
+app.config['MAIL_PASSWORD'] = os.environ.get("MAIL_PASSWORD", "tu_app_password")
+app.config['MAIL_DEFAULT_SENDER'] = app.config['MAIL_USERNAME']
 
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
@@ -52,9 +62,8 @@ def load_user(user_id):
 @app.route("/")
 def home():
     if current_user.is_authenticated:
-        return render_template("index.html")  # Control de cámara
-    return render_template("landing.html")    # Página pública
-
+        return render_template("index.html")
+    return render_template("landing.html")
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -114,7 +123,6 @@ def galeria():
     rutas = [url_for('static', filename=f"capturas/{foto.filename}") for foto in fotos]
     return render_template("galeria.html", imagenes=rutas)
 
-# ===== RECUPERAR CONTRASEÑA =====
 @app.route("/forgot_password", methods=["GET", "POST"])
 def forgot_password():
     if request.method == "POST":
@@ -123,35 +131,32 @@ def forgot_password():
         if user:
             token = s.dumps(email, salt="reset-password")
             link = url_for("reset_password", token=token, _external=True)
-
             msg = Message("Recuperar contraseña", recipients=[email])
             msg.body = f"Hola {user.username}, usa este enlace para resetear tu contraseña: {link}"
             mail.send(msg)
-
             return "Se ha enviado un correo con instrucciones."
-        else:
-            return render_template("forgot_password.html", error="Correo no registrado")
+        return render_template("forgot_password.html", error="Correo no registrado")
     return render_template("forgot_password.html")
 
 @app.route("/reset_password/<token>", methods=["GET", "POST"])
 def reset_password(token):
     try:
-        email = s.loads(token, salt="reset-password", max_age=3600)  # token válido por 1 hora
+        email = s.loads(token, salt="reset-password", max_age=3600)
     except:
         return "El enlace ha expirado o es inválido."
-
     user = User.query.filter_by(email=email).first()
-
     if request.method == "POST":
         nueva = request.form["password"]
         user.password_hash = bcrypt.generate_password_hash(nueva).decode("utf-8")
         db.session.commit()
         return redirect(url_for("login"))
-
     return render_template("reset_password.html")
 
+# ===== INICIO DEL SERVIDOR =====
 if __name__ == "__main__":
     with app.app_context():
-        db.create_all()
-    app.run(debug=True)
-
+        db.create_all()  # Crea las tablas en PostgreSQL al arrancar
+    
+    # Render asigna dinámicamente el puerto
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
