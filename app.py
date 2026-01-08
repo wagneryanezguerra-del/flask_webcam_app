@@ -36,10 +36,6 @@ login_manager.login_view = "login"
 mail = Mail(app)
 s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
-# 🔑 Crear las tablas automáticamente al iniciar (Render sí ejecuta esto)
-with app.app_context():
-    db.create_all()
-
 UPLOAD_FOLDER = os.path.join("static", "capturas")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
@@ -153,7 +149,14 @@ def reset_password(token):
         return redirect(url_for("login"))
     return render_template("reset_password.html")
 
+# 🔧 Ruta temporal para inicializar la base de datos en producción
+@app.route("/init_db")
+def init_db():
+    db.create_all()
+    return "Tablas creadas correctamente"
+
 # ===== INICIO DEL SERVIDOR =====
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
+
