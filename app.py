@@ -15,13 +15,12 @@ app = Flask(__name__)
 # Usa la variable de entorno de Render o una clave por defecto en local
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'clave-super-segura')
 
-# Lógica para conectar a PostgreSQL en Render o SQLite en local
-uri = os.environ.get("DATABASE_URL", "sqlite:///bambino.db")
-if uri and uri.startswith("postgres://"):
-    # Corrección obligatoria para SQLAlchemy 1.4+ en Render
-    uri = uri.replace("postgres://", "postgresql://", 1)
+# Lógica para leer la base de datos de Render
+database_url = os.environ.get("DATABASE_URL")
+if database_url and database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = uri
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url or 'sqlite:///bambino.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # --- CONFIGURACIÓN DE CORREO (Usa variables de entorno) ---
@@ -160,3 +159,4 @@ if __name__ == "__main__":
     # Render asigna dinámicamente el puerto
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
+
