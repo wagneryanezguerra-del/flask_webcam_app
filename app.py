@@ -10,16 +10,18 @@ from PIL import Image
 import io
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'clave-super-segura'
 
-# ⚠️ Ajusta esta URI para Render (usa variables de entorno en lugar de localhost)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
-    "DATABASE_URL",
-    "mysql+pymysql://root:@localhost/flask_app"  # fallback local
-)
+# --- CONFIGURACIÓN DE SEGURIDAD Y BASE DE DATOS ---
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'clave-super-segura')
+
+database_url = os.environ.get("DATABASE_URL")
+if database_url and database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url or 'sqlite:///bambino.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Configuración de correo (ejemplo con Gmail SMTP)
+# --- CONFIGURACIÓN DE CORREO ---
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
@@ -33,6 +35,10 @@ login_manager = LoginManager(app)
 login_manager.login_view = "login"
 mail = Mail(app)
 s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+
+# 🔑 Crear las tablas automáticamente al iniciar (Render sí ejecuta esto)
+with app.app_context():
+    db.create_all()
 
 UPLOAD_FOLDER = os.path.join("static", "capturas")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -57,12 +63,8 @@ def load_user(user_id):
 @app.route("/")
 def home():
     if current_user.is_authenticated:
-        # Si está logueado, mostrar la cámara
         return render_template("index.html")
-    # Si no está logueado, mostrar la landing pública
     return render_template("landing.html")
-
-
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -122,7 +124,6 @@ def galeria():
     rutas = [url_for('static', filename=f"capturas/{foto.filename}") for foto in fotos]
     return render_template("galeria.html", imagenes=rutas)
 
-# ===== RECUPERAR CONTRASEÑA =====
 @app.route("/forgot_password", methods=["GET", "POST"])
 def forgot_password():
     if request.method == "POST":
@@ -131,37 +132,28 @@ def forgot_password():
         if user:
             token = s.dumps(email, salt="reset-password")
             link = url_for("reset_password", token=token, _external=True)
-
             msg = Message("Recuperar contraseña", recipients=[email])
             msg.body = f"Hola {user.username}, usa este enlace para resetear tu contraseña: {link}"
             mail.send(msg)
-
             return "Se ha enviado un correo con instrucciones."
-        else:
-            return render_template("forgot_password.html", error="Correo no registrado")
+        return render_template("forgot_password.html", error="Correo no registrado")
     return render_template("forgot_password.html")
 
 @app.route("/reset_password/<token>", methods=["GET", "POST"])
 def reset_password(token):
     try:
-        email = s.loads(token, salt="reset-password", max_age=3600)  # token válido por 1 hora
+        email = s.loads(token, salt="reset-password", max_age=3600)
     except:
         return "El enlace ha expirado o es inválido."
-
     user = User.query.filter_by(email=email).first()
-
     if request.method == "POST":
         nueva = request.form["password"]
         user.password_hash = bcrypt.generate_password_hash(nueva).decode("utf-8")
         db.session.commit()
         return redirect(url_for("login"))
-
     return render_template("reset_password.html")
 
-# ===== MAIN =====
+# ===== INICIO DEL SERVIDOR =====
 if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
-    port = int(os.environ.get("PORT", 10000))  # Render asigna el puerto
+    port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
-
