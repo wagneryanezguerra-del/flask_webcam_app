@@ -12,10 +12,8 @@ import io
 app = Flask(__name__)
 
 # --- CONFIGURACIÓN DE SEGURIDAD Y BASE DE DATOS ---
-# Usa la variable de entorno de Render o una clave por defecto en local
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'clave-super-segura')
 
-# Lógica para leer la base de datos de Render
 database_url = os.environ.get("DATABASE_URL")
 if database_url and database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
@@ -23,7 +21,7 @@ if database_url and database_url.startswith("postgres://"):
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url or 'sqlite:///bambino.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# --- CONFIGURACIÓN DE CORREO (Usa variables de entorno) ---
+# --- CONFIGURACIÓN DE CORREO ---
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
@@ -37,6 +35,10 @@ login_manager = LoginManager(app)
 login_manager.login_view = "login"
 mail = Mail(app)
 s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+
+# 🔑 Crear las tablas automáticamente al iniciar (Render sí ejecuta esto)
+with app.app_context():
+    db.create_all()
 
 UPLOAD_FOLDER = os.path.join("static", "capturas")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -153,10 +155,5 @@ def reset_password(token):
 
 # ===== INICIO DEL SERVIDOR =====
 if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()  # Crea las tablas en PostgreSQL al arrancar
-    
-    # Render asigna dinámicamente el puerto
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
-
